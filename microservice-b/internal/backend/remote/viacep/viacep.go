@@ -30,11 +30,12 @@ type ErroViaCEP struct {
 	Erro string `json:"erro"`
 }
 
-const INVALID_ZIPCODE = "invalid zipcode"
+const INVALID_ZIPCODE_MSG = "invalid zipcode"
+const CANNOT_FIND_ZIPCODE_MSG = "can not find zipcode"
 
 func BuscaCep(zipcode string, ctx context.Context, tracer trace.Tracer) (*ViaCEP, *erro.Erro) {
 	if zipcode == "" {
-		return nil, erro.New(http.StatusBadRequest, INVALID_ZIPCODE)
+		return nil, erro.New(http.StatusBadRequest, INVALID_ZIPCODE_MSG)
 	}
 
 	ctx, span := tracer.Start(ctx, "Span_ViaCepAPI_Request")
@@ -66,7 +67,7 @@ func BuscaCep(zipcode string, ctx context.Context, tracer trace.Tracer) (*ViaCEP
 			if data.Localidade != "" {
 				return &data, nil
 			} else {
-				return nil, erro.New(http.StatusUnprocessableEntity, INVALID_ZIPCODE)
+				return nil, erro.New(http.StatusNotFound, CANNOT_FIND_ZIPCODE_MSG)
 			}
 		} else {
 			var erroViaCep ErroViaCEP // se for codigo de erro da API (pode ser 200 e erro == true)
@@ -74,11 +75,11 @@ func BuscaCep(zipcode string, ctx context.Context, tracer trace.Tracer) (*ViaCEP
 			if err != nil {
 				return nil, erro.New(http.StatusInternalServerError, err.Error())
 			} else {
-				return nil, erro.New(http.StatusUnprocessableEntity, INVALID_ZIPCODE)
+				return nil, erro.New(http.StatusUnprocessableEntity, INVALID_ZIPCODE_MSG)
 			}
 		}
 	} else if resp.StatusCode == 404 {
-		return nil, erro.New(http.StatusNotFound, "can not find zipcode")
+		return nil, erro.New(http.StatusNotFound, CANNOT_FIND_ZIPCODE_MSG)
 	} else {
 		return nil, erro.New(http.StatusBadRequest, "erro ao fazer requisicao")
 	}
